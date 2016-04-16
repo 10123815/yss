@@ -55,11 +55,6 @@ void Gateway::NewUserArrv ( )
 	if (client_sock_fd == -1)
 		perror("accept error ");
 
-	char* addr_str = inet_ntoa(client_addr.sin_addr);
-	short port = ntohs(client_addr.sin_port);
-
-	printf("%s : %d connected. \n", addr_str, port);
-
 	if (clients_.size() < MaxConnection)
 	{
 		// set this fd nonblocking
@@ -68,12 +63,12 @@ void Gateway::NewUserArrv ( )
 		// create a new client
 
 		// available user id
-		const unsigned short id = avai_ids_.top();
+		const uint16_t uid = avai_ids_.top();
 		avai_ids_.pop();
 
 		// client hold resources it use,
 		// suck as socket, shared memory...
-		std::unique_ptr<Client> client(new Client(id));
+		std::unique_ptr<Client> client(new Client(uid));
 
 		// add user data arrival listener
 		// events = EPOLLIN | EPOLLET
@@ -82,7 +77,7 @@ void Gateway::NewUserArrv ( )
 		// let lobby server open fifo,
 		// this will block lobby server until client open the fifo
 		UserArr arr_info;
-		arr_info.id = id;
+		arr_info.id = uid;
 		arr_info.arr_lea = 0;
 		write(lua_fifo_fd_, &arr_info, sizeof(UserArr));
 
@@ -97,17 +92,20 @@ void Gateway::NewUserArrv ( )
 		// TODO : add game server data arrival listener
 
 		// add client
-		sock_uid_[client_sock_fd] = id;
-		fifo_uid_[recv_fd] = id;
-		clients_[id] = std::unique_ptr<Client>(client.release());
+		sock_uid_[client_sock_fd] = uid;
+		fifo_uid_[recv_fd] = uid;
+		clients_[uid] = std::unique_ptr<Client>(client.release());
 
 		// return success to client
-		Utility::WriteValue((int)kConnectSuccess, client_sock_fd);
+		Utility::WriteConnStt(kConnSuc, uid, client_sock_fd);
+
+		printf("uid:%d connected. \n", uid);
+
 	}
 	else
 	{
 		// reject
-		Utility::WriteValue((int)kConnectFailed, client_sock_fd);
+		Utility::WriteConnStt(kConnFail, MaxConnection, client_sock_fd);
 	}
 
 
@@ -184,16 +182,16 @@ void Gateway::Run ( )
 
 				// read data length
 				DataDir dir;
-				short len = Utility::ReadHead(cln_sock_fd, &dir);
+				short len = Utility::ReadPkgHead(cln_sock_fd, &dir);
 
-				if (len <= 0)
+				if (len == 0)
 				{
 					// client close tcp
 					printf("client close\n");
 
 					// TODO : let lobby server detach shared memory
 
-					unsigned short id = sock_uid_[cln_sock_fd];
+					uint16_t id = sock_uid_[cln_sock_fd];
 					UserArr lea_info;
 					lea_info.id = id;
 					lea_info.arr_lea = 1;
@@ -206,13 +204,20 @@ void Gateway::Run ( )
 				}
 				else
 				{
-					char data[len - _PKG_HEAD_SIZE_];
+					size_t data_len = len - _PKG_HEAD_SIZE_;
+					char data[data_len];
 					read(cln_sock_fd, data, sizeof(data));
+					uint16_t uid = sock_uid_[cln_sock_fd];
 					switch (dir)
 					{
 						case kLobby:
-							break;
+						{
+							clients_[uid]->SendLobby(data, data_len);
+						}
+						break;
 						case kGame:
+							break;
+						default:
 							break;
 					}
 

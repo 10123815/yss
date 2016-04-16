@@ -16,8 +16,6 @@ namespace ysd_simple_server
 	///////////////////////////////////////////////////////
 	class LobbyLogic
 	{
-		// three player's uid
-		typedef uint16_t MatchResult[3];
 	public:
 
 		LobbyLogic (const LobbyLogic& other) = delete;

@@ -55,7 +55,7 @@ namespace ysd_simple_server
 			// close socket
 			close(sock_fd_);
 
-			printf("%s\n", "all resources have released");
+			printf("all resources of %d have released\n", uid_);
 		}
 
 		void AddSockEvent (int epoll_fd, int sock_fd)
@@ -79,7 +79,7 @@ namespace ysd_simple_server
 		void Recv ( );
 
 		// write into the shared memory
-		void SendLobby (const char& data);
+		void SendLobby (const char* data, size_t len);
 
 		// read from the shared memory
 		void RecvLobby ( );

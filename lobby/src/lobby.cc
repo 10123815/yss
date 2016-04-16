@@ -30,13 +30,13 @@ void Lobby::Run ( )
 				// new user com / user leave
 				UserArrv();
 			}
-			else
+			else if (events_[i].events & EPOLLIN)
 			{
 				int fifo_in_fd = events_[i].data.fd;
 
 				NetMsgType type;
-				short len = Utility::ReadHead(fifo_in_fd, &type);
-				if (len <= 3)
+				short len = Utility::ReadDataHead(fifo_in_fd, &type);
+				if (len <= _DATA_HEAD_SIZE_)
 					continue;
 
 				char msg[len - _DATA_HEAD_SIZE_];
@@ -45,20 +45,20 @@ void Lobby::Run ( )
 					// chat message
 					// kChat --len--|--uid--|-------content--------
 
-					char chat_head[3];
-					int head_size = read(fifo_in_fd, chat_head, 3);
+					char chat_head[4];
+					int head_size = read(fifo_in_fd, chat_head, 4);
 
-					if (head_size != 3)
+					if (head_size != 4)
 					{
 						perror("read char msg head ");
 						continue;
 					}
 
 					// from who
-					uint16_t uid = (((unsigned short)chat_head[2]) << 8) + chat_head[1];
+					uint16_t uid = Utility::Uint16_char(chat_head[2], chat_head[3]);
 
 					// chat msg length
-					char len = chat_head[0];
+					uint16_t len = Utility::Uint16_char(chat_head[0], chat_head[1]);
 
 					char chat_msg[len];
 					int msg_size = read(fifo_in_fd, chat_msg, len);

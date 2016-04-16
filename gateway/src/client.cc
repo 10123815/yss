@@ -29,9 +29,9 @@ int Client::CreateLobbyFIFO (std::string name)
 	return rl_fifo_fd_;
 }
 
-void Client::SendLobby (const char& data)
+void Client::SendLobby (const char* data, size_t len)
 {
-	write(wl_fifo_fd_, &data, sizeof(data));
+	write(wl_fifo_fd_, data, len);
 }
 
 void Client::RecvLobby ( )
