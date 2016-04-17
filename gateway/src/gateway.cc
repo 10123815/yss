@@ -113,10 +113,9 @@ void Gateway::NewUserArrv ( )
 
 void Gateway::RecvDataLobby ( )
 {
-	int nfds = 0;
 	while (1)
 	{
-		nfds = epoll_wait(epoll_lobby_fd_, &*lobby_events_.begin(), lobby_events_.size(), -1);
+		int nfds = epoll_wait(epoll_lobby_fd_, &*lobby_events_.begin(), lobby_events_.size(), -1);
 		if (nfds == -1)
 			perror("epoll wait lobby ");
 
@@ -128,11 +127,14 @@ void Gateway::RecvDataLobby ( )
 			if (lobby_events_[i].events & EPOLLIN)
 			{
 				// some data from lobby server
-				int shm_id = lobby_events_[i].data.fd;
-				unsigned short uid = fifo_uid_[shm_id];
+				int fifo_id = lobby_events_[i].data.fd;
+				uint16_t uid = fifo_uid_[fifo_id];
 
-				// TODO : send to socket
-				//clients_[uid]->Send();
+				// send to socket
+				char buffer[255];
+				size_t size = read(fifo_id, buffer, 255);
+				int sock = clients_[uid]->sock_fd();
+				Utility::GatewayWritePkg(buffer, size, sock);
 			}
 		}
 
@@ -147,16 +149,16 @@ void Gateway::Run ( )
 	event.events = EPOLLIN | EPOLLET;	// listen read event
 	epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, listen_fd_, &event);
 
-	// prepared event number
-	int nfds = 0;
-
 	// TODO : recv data from logic server and forward to socket
+	auto func_obj = std::bind(&Gateway::RecvDataLobby, this);
+	std::thread send_client_thr(func_obj);
+	send_client_thr.detach();
 
 	// recv data from socket and forward to logic server
 	while (1)
 	{
 		// events_ will filled by io event
-		nfds = epoll_wait(epoll_fd_, &*events_.begin(), events_.size(), -1);
+		int nfds = epoll_wait(epoll_fd_, &*events_.begin(), events_.size(), -1);
 		if (nfds == -1)
 		{
 			perror("epoll wait");
@@ -178,7 +180,7 @@ void Gateway::Run ( )
 				if (cln_sock_fd < 0)
 					perror("client socket");
 
-				unsigned short uid = sock_uid_[cln_sock_fd];
+				uint16_t uid = sock_uid_[cln_sock_fd];
 
 				// read data length
 				DataDir dir;

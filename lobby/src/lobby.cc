@@ -55,18 +55,26 @@ void Lobby::Run ( )
 					}
 
 					// from who
-					uint16_t uid = Utility::Uint16_char(chat_head[2], chat_head[3]);
+					uint16_t uid = Utility::Char_Uint16(chat_head[2], chat_head[3]);
 
 					// chat msg length
-					uint16_t len = Utility::Uint16_char(chat_head[0], chat_head[1]);
+					uint16_t len = Utility::Char_Uint16(chat_head[0], chat_head[1]);
 
 					char chat_msg[len];
 					int msg_size = read(fifo_in_fd, chat_msg, len);
 					if (msg_size != len)
 						continue;
 
-					printf("from %d : %s\n", uid, chat_msg);
-					// TODO : broadcast to another player
+					// broadcast to another player
+					for (const auto& fifo : fifos_)
+					{
+						int this_uid = fifo.first;
+						if (this_uid != uid)
+						{
+							int send_fd = fifo.second->send_fd();
+							Utility::LobbyWriteChatMsg(len, uid, chat_msg, send_fd);
+						}
+					}
 
 				}
 				else if (type == kPlay)

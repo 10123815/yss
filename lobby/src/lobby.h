@@ -20,7 +20,7 @@ namespace ysd_simple_server
 	class Lobby
 	{
 
-		typedef std::map<unsigned short, std::unique_ptr<FifoDataPipe>> FIFOSet;
+		typedef std::map<uint16_t, std::unique_ptr<FifoDataPipe>> FIFOSet;
 
 	public:
 		Lobby (int max_size)

@@ -55,6 +55,7 @@ namespace ysd_simple_server
 		}
 
 		int recv_fd ( ) const { return from_gateway_fd_; }
+		int send_fd ( ) const { return to_gateway_fd_; }
 
 	private:
 

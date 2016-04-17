@@ -1,6 +1,7 @@
 #ifndef _SIMPLE_SERVER_H_
 #define _SIMPLE_SERVER_H_
 
+#include <thread>
 #include <iostream>
 #include <vector>
 #include <stdio.h>
@@ -101,7 +102,7 @@ namespace ysd_simple_server
 			NetMsgType stt = (NetMsgType)data[2];
 			if (stt == kConnSuc)
 			{
-				return Utility::Uint16_char(data[3], data[4]);
+				return Utility::Char_Uint16(data[3], data[4]);
 			}
 			else
 			{
@@ -139,12 +140,13 @@ namespace ysd_simple_server
 		// from lobby to gateway server
 		static void LobbyWriteMatchInfo (const MatchResult res, int fifo_fd)
 		{
+			size_t data_len = sizeof(MatchResult);
+			char out[_DATA_HEAD_SIZE_ + data_len];
+
 			// head
-			Utility::WriteDataHead(kMatch, fifo_fd);
+			Utility::WriteDataHead(data_len, kMatch, out);
 
 			// data. from low to high
-			size_t data_len = sizeof(MatchResult);
-			char out[data_len];
 			for (int i = 0; i < 3; ++i)
 			{
 				uint16_t tmp = res[i];
@@ -152,22 +154,26 @@ namespace ysd_simple_server
 				out[1 + i * 2] = (tmp & 0xFF00) >> 8;
 			}
 
-			write(fifo_fd, out, data_len);
+			write(fifo_fd, out, sizeof(out));
 
 		}
 
+		// lobby server send char msg to gateway server
 		static void LobbyWriteChatMsg (uint16_t str_len, uint16_t uid, const char* ctt, int fifo_fd)
 		{
-			// head
-			Utility::WriteDataHead(kChat, fifo_fd);
+			char out[_DATA_HEAD_SIZE_ + 4 + str_len];
 
-			char out[4 + str_len];
-			// ctt head low to high
-			out[0] = str_len;
-			out[1] = (str_len & 0xFF00) >> 8;
-			out[2] = uid;
-			out[3] = (uid & 0xFF00) >> 8;
-			memcpy(out + 4, ctt, str_len);
+			// head
+			Utility::WriteDataHead(4 + str_len, kChat, out);
+
+			// chat msg head low to high
+			out[_DATA_HEAD_SIZE_ + 0] = str_len;
+			out[_DATA_HEAD_SIZE_ + 1] = (str_len & 0xFF00) >> 8;
+			out[_DATA_HEAD_SIZE_ + 2] = uid;
+			out[_DATA_HEAD_SIZE_ + 3] = (uid & 0xFF00) >> 8;
+
+			// chat content
+			memcpy(out + 4 + _DATA_HEAD_SIZE_, ctt, str_len);
 
 			// write to gateway server
 			write(fifo_fd, out, sizeof(out));
@@ -240,7 +246,7 @@ namespace ysd_simple_server
 			return len;
 		}
 
-		static uint16_t Uint16_char (char l, char h)
+		static uint16_t Char_Uint16 (char l, char h)
 		{
 			uint8_t low = l;
 			uint16_t high = h;
@@ -249,14 +255,12 @@ namespace ysd_simple_server
 
 	private:
 		// from lobby / game server to gateway server
-		static void WriteDataHead (NetMsgType type, int fifo_fd)
+		static void WriteDataHead (uint16_t data_len, NetMsgType type, char* head)
 		{
 			// data head
-			char head[_DATA_HEAD_SIZE_];
-			head[0] = _DATA_HEAD_SIZE_;
-			head[1] = (_DATA_HEAD_SIZE_ & 0xFF00) >> 8;
+			head[0] = _DATA_HEAD_SIZE_ + data_len;
+			head[1] = ((_DATA_HEAD_SIZE_ + data_len) & 0xFF00) >> 8;
 			head[2] = type;
-			write(fifo_fd, head, _DATA_HEAD_SIZE_);
 		}
 	};
 
