@@ -134,11 +134,19 @@ void Gateway::RecvDataLobby ( )
 				char buffer[255];
 				size_t size = read(fifo_id, buffer, 255);
 				int sock = clients_[uid]->sock_fd();
+
+				// package data
 				Utility::GatewayWritePkg(buffer, size, sock);
 			}
 		}
 
 	}
+}
+
+void Gateway::RecvDataGame ( )
+{
+	while (1)
+	{}
 }
 
 void Gateway::Run ( )

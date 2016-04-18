@@ -3,6 +3,7 @@
 
 #include <queue>
 #include <tuple>
+#include <mutex>
 
 #include "../../common/simple_server.h"
 
@@ -17,6 +18,7 @@ namespace ysd_simple_server
 	class LobbyLogic
 	{
 	public:
+		LobbyLogic ( ) = default;
 
 		LobbyLogic (const LobbyLogic& other) = delete;
 		LobbyLogic& operator= (LobbyLogic& other) = delete;
@@ -24,6 +26,7 @@ namespace ysd_simple_server
 		// when a player want to match
 		void WantPlay (uint16_t uid)
 		{
+			std::unique_lock<std::mutex> lck(mtx_);
 			match_queue_.push(uid);
 		}
 
@@ -42,6 +45,10 @@ namespace ysd_simple_server
 
 	private:
 		std::queue<uint16_t> match_queue_;	// player in this queue wait for a match
+
+		// two threads will read/write the match queue
+		std::mutex mtx_;
+
 	};
 }
 

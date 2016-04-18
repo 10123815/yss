@@ -9,7 +9,8 @@ void Lobby::Run ( )
 {
 
 	// TODO : send data to gateway server
-
+	
+	
 	while (1)
 	{
 		int nfds = epoll_wait(epoll_fd_, &*events_.begin(), events_.size(), -1);

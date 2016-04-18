@@ -16,14 +16,13 @@ namespace ysd_simple_server
 	/////////////////////////////////////////////////////////////////
 	// A client maintain system resources for a client:
 	// socket and IO event
-	// shared memory for IPC between Gateway and other processes;
+	// fifo for IPC between Gateway and other backend servers;
 	// ....
 	/////////////////////////////////////////////////////////////////
 	class Client final
 	{
 	public:
 
-		// get resource when created
 		Client (unsigned short id)
 			: uid_ (id)
 		{

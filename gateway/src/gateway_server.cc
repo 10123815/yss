@@ -1,3 +1,7 @@
+/////////////////////////////////////////////////////
+// main.cc for gateway server
+/////////////////////////////////////////////////////
+
 #include "gateway.h"
 
 using namespace ysd_simple_server;
@@ -15,6 +19,7 @@ int main(int argc, char const *argv[])
 	return 0;
 }
 
+// initialize the gateway server and return the socket fd
 int InitGatewayServer()
 {
 

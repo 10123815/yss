@@ -11,6 +11,17 @@
 namespace ysd_simple_server
 {
 
+	/////////////////////////////////////////////////////
+	// A gateway server is the front end of our server
+	// framework. It maintain TCP sockets of clients,
+	// receive data from clients and forward it to lobby
+	// server or game server.
+	// We use fifo for IPC.
+	// The gateway server run three threads. One is for 
+	// accepting data from client and forward to back end
+	// servers. The other two are for accepting data from 
+	// back end servers and forward to clients.
+	/////////////////////////////////////////////////////
 	class Gateway
 	{
 
@@ -70,8 +81,11 @@ namespace ysd_simple_server
 		// listen user arrival
 		void NewUserArrv ( );
 
-		// recv data from lobby server and forward to socket
+		// receive data from lobby server and forward to client
 		void RecvDataLobby ( );
+
+		// receive data fomr game server and forward to client
+		void RecvDataGame ( );
 
 		void CreateFIFO (std::string name, uint16_t uid, int* wfd, int* rfd, int* rrfd, int* wwfd);
 

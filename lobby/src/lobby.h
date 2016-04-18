@@ -7,13 +7,14 @@
 
 #include "../../common/simple_server.h"
 #include "data_fifo.h"
+#include "lobby_logic.h"
 
 namespace ysd_simple_server
 {
 
 
 	/////////////////////////////////////////////////////////
-	// Front end of the lobby server, get data from gateway
+	// Lobby server get data from gateway
 	// server and process them with LobbyLogic then return
 	// them to the gateway server.
 	/////////////////////////////////////////////////////////
@@ -24,6 +25,7 @@ namespace ysd_simple_server
 
 	public:
 		Lobby (int max_size)
+			: logic_ ( )
 		{
 
 			epoll_fd_ = epoll_create1(EPOLL_CLOEXEC);
@@ -48,6 +50,8 @@ namespace ysd_simple_server
 			unlink(_LUA_FIFO_);
 			close(epoll_fd_);
 		}
+		Lobby (const Lobby& other) = delete;
+		Lobby& operator= (Lobby other) = delete;
 
 		void Run ( );
 
@@ -64,7 +68,10 @@ namespace ysd_simple_server
 
 		FIFOSet fifos_;
 
+		// recv fifo id to uid
 		std::map<int, int> recvf_uid;
+
+		LobbyLogic logic_;
 	};
 }
 
