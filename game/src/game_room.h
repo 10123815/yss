@@ -8,7 +8,7 @@ namespace ysd_simple_server
 	// A game room handle the main logic of this
 	// game, such as player's movement, monster 
 	// AI, scene management....
-	// It is like a "Scnen" in a game engine.
+	// It is like a "Scnen" in a game client engine.
 	////////////////////////////////////////////
 	class Room
 	{

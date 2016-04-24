@@ -1,9 +1,8 @@
 #ifndef _LOBBY_MANAGEMENT_H_
 #define _LOBBY_MANAGEMENT_H_ value
 
-#include <queue>
+#include <list>
 #include <tuple>
-#include <mutex>
 
 #include "../../common/simple_server.h"
 
@@ -12,8 +11,8 @@ namespace ysd_simple_server
 
 	///////////////////////////////////////////////////////
 	// This class manage all entity in the lobby,
-	// create match for every three players,
-	// and also work as a char room.
+	// create match for every three players.
+	// Singel thread to prevent wrong insert/remove operation.
 	///////////////////////////////////////////////////////
 	class LobbyLogic
 	{
@@ -26,28 +25,34 @@ namespace ysd_simple_server
 		// when a player want to match
 		void WantPlay (uint16_t uid)
 		{
-			std::unique_lock<std::mutex> lck(mtx_);
-			match_queue_.push(uid);
+			// promise that no same user id
+			match_queue_.remove(uid);
+			match_queue_.push_back(uid);
+		}
+
+		// when a player cancel match
+		void CancelMatch (uint16_t uid)
+		{
+			match_queue_.remove(uid);
 		}
 
 		// nonblock return match result
-		bool GetMatch (MatchResult match_res)
+		bool GetMatch (MatchResult* match_res)
 		{
-			int i = 0;
-			while (match_queue_.size() > 0 && i++ < 3)
+			if (match_queue_.size() >= 2)
 			{
-				match_res[i] = match_queue_.front();
-				match_queue_.pop();
+				match_res->first = match_queue_.front();
+				match_queue_.pop_front();
+				match_res->second = match_queue_.front();
+				match_queue_.pop_front();
+				return true;
 			}
-
-			return i == 3;
+			return false;
 		}
 
 	private:
-		std::queue<uint16_t> match_queue_;	// player in this queue wait for a match
+		std::list<uint16_t> match_queue_;	// player in this queue wait for a match
 
-		// two threads will read/write the match queue
-		std::mutex mtx_;
 
 	};
 }

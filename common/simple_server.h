@@ -27,7 +27,7 @@ namespace ysd_simple_server
 	typedef std::vector<epoll_event> EpollEventSet;
 
 	// three player's uid
-	typedef uint16_t MatchResult[3];
+	typedef std::pair<uint16_t, uint16_t> MatchResult;
 
 	struct UserArr
 	{
@@ -72,11 +72,12 @@ namespace ysd_simple_server
 	{
 		kChat		= 0,	// bidirectional, --len2--|--uid2--|-------content--------
 		kPlay		= 1,	// client to server, --uid2--
-		kMatch		= 2,	// server to client, --uid2--|--uid2--|--uid2--
-		kFloat		= 3,
+		kCancelPlay = 2,	// client to server, --uid2--
+		kMatch		= 3,	// server to client, --uid2--|--uid2--
+		kFloat		= 4,
 		kFloat2		= 8,	// 2d vector
 		kFloat3		= 16,	// 3d vector
-		
+
 		kConnSuc	= 126,	// server to client, --uid2--
 		kConnFail	= 127,	// server to client
 	};
@@ -140,19 +141,20 @@ namespace ysd_simple_server
 		// from lobby to gateway server
 		static void LobbyWriteMatchInfo (const MatchResult res, int fifo_fd)
 		{
-			size_t data_len = sizeof(MatchResult);
+			size_t data_len = sizeof(uint16_t) * 2;
 			char out[_DATA_HEAD_SIZE_ + data_len];
 
 			// head
 			Utility::WriteDataHead(data_len, kMatch, out);
 
 			// data. from low to high
-			for (int i = 0; i < 3; ++i)
-			{
-				uint16_t tmp = res[i];
-				out[i * 2] = tmp;
-				out[1 + i * 2] = (tmp & 0xFF00) >> 8;
-			}
+			uint16_t tmp = res.first;
+			out[3] = tmp;
+			out[4] = (tmp & 0xFF00) >> 8;
+
+			tmp = res.second;
+			out[5] = tmp;
+			out[6] = (tmp & 0xFF00) >> 8;
 
 			write(fifo_fd, out, sizeof(out));
 

@@ -8,9 +8,6 @@ using namespace ysd_simple_server;
 void Lobby::Run ( )
 {
 
-	// TODO : send data to gateway server
-	
-	
 	while (1)
 	{
 		int nfds = epoll_wait(epoll_fd_, &*events_.begin(), events_.size(), -1);
@@ -28,11 +25,12 @@ void Lobby::Run ( )
 		{
 			if (events_[i].data.fd == lua_fifo_fd_)
 			{
-				// new user com / user leave
+				// new user com / old user leave
 				UserArrv();
 			}
 			else if (events_[i].events & EPOLLIN)
 			{
+				// user message arrival
 				int fifo_in_fd = events_[i].data.fd;
 
 				NetMsgType type;
@@ -78,13 +76,45 @@ void Lobby::Run ( )
 					}
 
 				}
+				// only add/remove uid to the queue in this loop
+				// do not return the match result
 				else if (type == kPlay)
 				{
 					// player want to play
 					// kPlay --uid--
+					char data[2];
+					if (2 != read(fifo_in_fd, data, 2))
+						continue;
+
+					uint16_t uid = Utility::Char_Uint16(data[0], data[1]);
+					logic_.WantPlay(uid);
+				}
+				else if (type == kCancelPlay)
+				{
+					// player cancel match
+					//kCancelPlayer --uid--
+					char data[2];
+					if (2 != read(fifo_in_fd, data, 2))
+						continue;
+
+					uint16_t uid = Utility::Char_Uint16(data[0], data[1]);
+					logic_.CancelMatch(uid);
 				}
 			}
 		}
+
+		// after the completion of all events, return the match results
+		// this make sure that the player cancel to play will be removed from the queue before
+		// it returned by the match result
+		MatchResult match_res;
+		while (logic_.GetMatch(&match_res))
+		{
+			int first_fifo = fifos_[match_res.first]->send_fd();
+			int second_fifo = fifos_[match_res.second]->send_fd();
+			Utility::LobbyWriteMatchInfo(match_res, first_fifo);
+			Utility::LobbyWriteMatchInfo(match_res, second_fifo);
+		}
+
 	}
 
 }
